@@ -22,6 +22,5 @@ noyoda ./...
 
 # Roadmap
 
-- [ ] flag for `const` check
 - [ ] Auto fix
 - [ ] Run tests for comprehensive set of popular go codebases, if there are many maybe Open a PR to golangci-lint

@@ -1,6 +1,7 @@
 package noyoda
 
 import (
+	"flag"
 	"go/ast"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -12,13 +13,18 @@ const doc = `remove yoda conditions
 Yoda condition is a expression/statement style to prevent accidental assignments like if x = 3 instead if x == 3.
 Go does not needs this check.`
 
+var includeConst bool
+
 func NewAnalyzer() *analysis.Analyzer {
+	fs := flag.NewFlagSet("noyoda", flag.ExitOnError)
+	fs.BoolVar(&includeConst, "include-const", false, "should include const (default is false)")
 	//nolint:exhaustruct,exhaustivestruct
 	return &analysis.Analyzer{
 		Name:     "noyoda",
 		Doc:      doc,
 		Run:      run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
+		Flags:    *fs,
 	}
 }
 
@@ -37,6 +43,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		for _, bexpr := range bexprs {
 			//nolint:varnamelen
 			lval, ok := bexpr.X.(*ast.BasicLit)
+
+			if !ok && !includeConst {
+				continue
+			}
 
 			var lvalStr string
 			if ok {

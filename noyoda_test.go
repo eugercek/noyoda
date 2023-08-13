@@ -8,11 +8,33 @@ import (
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
-func Test(t *testing.T) {
+var testDir string
+
+func init() {
+	cur, _ := os.Getwd()
+	testDir = cur + "/testdata/"
+}
+
+func TestIf(t *testing.T) {
 	t.Parallel()
 
-	cur, _ := os.Getwd()
-	testDir := cur + "/testdata"
+	analysistest.Run(t, testDir+"ifcond", NewAnalyzer())
+}
 
-	analysistest.Run(t, testDir, NewAnalyzer())
+func TestSwitch(t *testing.T) {
+	t.Parallel()
+
+	analysistest.Run(t, testDir+"switchcond", NewAnalyzer())
+}
+
+func TestConst(t *testing.T) {
+	t.Parallel()
+
+	a := NewAnalyzer()
+	err := a.Flags.Set("include-const", "true")
+	if err != nil {
+		panic(err)
+	}
+
+	analysistest.Run(t, testDir+"constcond", a)
 }
