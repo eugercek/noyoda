@@ -2,30 +2,21 @@
 package noyoda
 
 import (
-	"os"
 	"testing"
 
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
-//nolint:gochecknoglobals
-var testDir string
-
-func init() {
-	cur, _ := os.Getwd()
-	testDir = cur + "/testdata/"
-}
-
 func TestIf(t *testing.T) {
 	t.Parallel()
 
-	analysistest.Run(t, testDir+"ifcond", NewAnalyzer())
+	analysistest.Run(t, analysistest.TestData(), NewAnalyzer(), "ifcond")
 }
 
 func TestSwitch(t *testing.T) {
 	t.Parallel()
 
-	analysistest.Run(t, testDir+"switchcond", NewAnalyzer())
+	analysistest.Run(t, analysistest.TestData(), NewAnalyzer(), "switchcond")
 }
 
 func TestConst(t *testing.T) {
@@ -37,5 +28,5 @@ func TestConst(t *testing.T) {
 		panic(err)
 	}
 
-	analysistest.Run(t, testDir+"constcond", a)
+	analysistest.Run(t, analysistest.TestData(), a, "constcond")
 }

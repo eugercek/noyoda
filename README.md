@@ -7,7 +7,7 @@ For instance, it would prevent code like `if 10 = x`, which is invalid and would
 
 Because `if x = 10 { ... } ` is invalid syntax in Go, there's no need for yoda conditions.
 
-# Install and Usage
+# Installation and Usage
 
 ```bash
 go install github.com/eugercek/noyoda/cmd/noyoda
