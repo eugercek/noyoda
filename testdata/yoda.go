@@ -16,8 +16,9 @@ func ElseIfYodaCondition(n int) {
 
 func SwitchYodaCondition(n int) {
 	switch {
-	case 10 == n:
+	case 10 == n: // want "yoda condition: 10 == n should be n == 10"
 		return
+	case 20 == n, 30 == n: // want "yoda condition: 20 == n should be n == 20" "yoda condition: 30 == n should be n == 30"
 	}
 }
 

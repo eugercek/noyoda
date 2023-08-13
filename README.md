@@ -22,8 +22,8 @@ noyoda ./...
 
 # Roadmap
 
-- [ ] switch case check
-- [ ] `const` Check
+- [ ] Recursive checker (`if a == b && 10 == n`)
+- [ ] `const` check
 - [ ] flag for `const` check
 - [ ] Auto fix
 - [ ] Run tests for comprehensive set of popular go codebases, if there are many maybe Open a PR to golangci-lint
