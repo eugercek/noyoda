@@ -2,7 +2,6 @@ package noyoda
 
 import (
 	"go/ast"
-
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
@@ -39,8 +38,22 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			//nolint:varnamelen
 			lval, ok := bexpr.X.(*ast.BasicLit)
 
-			if !ok {
-				continue
+			var lvalStr string
+			if ok {
+				lvalStr = lval.Value
+			} else {
+				n, ok := bexpr.X.(*ast.Ident)
+
+				if !ok {
+					continue
+				}
+
+				if n.Obj.Kind != ast.Con {
+					continue
+				}
+
+				lvalStr = n.Name
+
 			}
 
 			rval, ok := bexpr.Y.(*ast.Ident)
@@ -50,8 +63,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			pass.Reportf(node.Pos(), "yoda condition: %s %s %s should be %s %s %s",
-				lval.Value, bexpr.Op.String(), rval.Name,
-				rval.Name, bexpr.Op.String(), lval.Value,
+				lvalStr, bexpr.Op.String(), rval.Name,
+				rval.Name, bexpr.Op.String(), lvalStr,
 			)
 		}
 	})
