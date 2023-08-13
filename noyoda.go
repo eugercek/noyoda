@@ -49,27 +49,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		bexprs := parseBinaryExpressions(node)
 
 		for _, bexpr := range bexprs {
-			lval, ok := bexpr.X.(*ast.BasicLit)
+			lval, ok := parseLeft(bexpr.X)
 
-			if !ok && !includeConst {
+			if !ok {
 				continue
-			}
-
-			var lvalStr string
-			if ok {
-				lvalStr = lval.Value
-			} else {
-				n, ok := bexpr.X.(*ast.Ident)
-
-				if !ok {
-					continue
-				}
-
-				if n.Obj.Kind != ast.Con {
-					continue
-				}
-
-				lvalStr = n.Name
 			}
 
 			rval, ok := bexpr.Y.(*ast.Ident)
@@ -78,11 +61,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				continue
 			}
 
-			newText := fmt.Sprintf("%s %s %s", rval.Name, bexpr.Op.String(), lvalStr)
+			newText := fmt.Sprintf("%s %s %s", rval.Name, bexpr.Op.String(), lval)
 			errorMsg := fmt.Sprintf("yoda condition: %s %s %s should be %s",
-				lvalStr, bexpr.Op.String(), rval.Name,
+				lval, bexpr.Op.String(), rval.Name,
 				newText,
 			)
+			//nolint:exhaustruct,exhaustivestruct
 			pass.Report(analysis.Diagnostic{
 				Pos:      bexpr.Pos(),
 				End:      bexpr.End(),
@@ -167,5 +151,24 @@ func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 
 	default:
 		panic("Unknown state")
+	}
+}
+
+func parseLeft(e ast.Expr) (val string, ok bool) {
+	switch expr := e.(type) {
+	case *ast.BasicLit:
+		return expr.Value, true
+	case *ast.Ident:
+		if !includeConst {
+			return "", false
+		}
+
+		if expr.Obj.Kind != ast.Con {
+			return "", false
+		}
+
+		return expr.Name, true
+	default:
+		return "", false
 	}
 }
