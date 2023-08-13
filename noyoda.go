@@ -15,18 +15,23 @@ Yoda condition is a expression/statement style to prevent accidental assignments
 Go does not needs this check.`
 
 //nolint:gochecknoglobals
-var includeConst bool
+var (
+	includeConst bool
+	flagset      flag.FlagSet
+)
+
+func init() {
+	flagset.BoolVar(&includeConst, "include-const", false, "should include const (default is false)")
+}
 
 func NewAnalyzer() *analysis.Analyzer {
-	fs := flag.NewFlagSet("noyoda", flag.ExitOnError)
-	fs.BoolVar(&includeConst, "include-const", false, "should include const (default is false)")
 	//nolint:exhaustruct,exhaustivestruct
 	return &analysis.Analyzer{
 		Name:     "noyoda",
 		Doc:      doc,
 		Run:      run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
-		Flags:    *fs,
+		Flags:    flagset,
 	}
 }
 
