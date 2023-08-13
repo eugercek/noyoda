@@ -8,6 +8,7 @@ import (
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
+//nolint:gochecknoglobals
 var testDir string
 
 func init() {
@@ -31,8 +32,8 @@ func TestConst(t *testing.T) {
 	t.Parallel()
 
 	a := NewAnalyzer()
-	err := a.Flags.Set("include-const", "true")
-	if err != nil {
+
+	if err := a.Flags.Set("include-const", "true"); err != nil {
 		panic(err)
 	}
 

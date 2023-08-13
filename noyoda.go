@@ -3,6 +3,7 @@ package noyoda
 import (
 	"flag"
 	"go/ast"
+
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
@@ -13,6 +14,7 @@ const doc = `remove yoda conditions
 Yoda condition is a expression/statement style to prevent accidental assignments like if x = 3 instead if x == 3.
 Go does not needs this check.`
 
+//nolint:gochecknoglobals
 var includeConst bool
 
 func NewAnalyzer() *analysis.Analyzer {
@@ -41,7 +43,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		bexprs := parseBinaryExpressions(node)
 
 		for _, bexpr := range bexprs {
-			//nolint:varnamelen
 			lval, ok := bexpr.X.(*ast.BasicLit)
 
 			if !ok && !includeConst {
@@ -63,7 +64,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				}
 
 				lvalStr = n.Name
-
 			}
 
 			rval, ok := bexpr.Y.(*ast.Ident)
@@ -83,9 +83,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-//nolint:nonamedreturns
 func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
 	var bexprs []*ast.BinaryExpr
+
 	switch node := n.(type) {
 	case *ast.IfStmt:
 		bexpr, ok := node.Cond.(*ast.BinaryExpr)
@@ -118,6 +118,7 @@ func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
 			ret = append(ret, exprs...)
 		}
 	}
+
 	return ret
 }
 
@@ -140,6 +141,6 @@ func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 		return recurseBinaryExpressions(yexpr)
 
 	default:
-		panic("Unkown state")
+		panic("Unknown state")
 	}
 }
