@@ -2,6 +2,7 @@ package noyoda
 
 import (
 	"flag"
+	"fmt"
 	"go/ast"
 
 	"golang.org/x/tools/go/analysis"
@@ -77,10 +78,29 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				continue
 			}
 
-			pass.Reportf(node.Pos(), "yoda condition: %s %s %s should be %s %s %s",
+			newText := fmt.Sprintf("%s %s %s", rval.Name, bexpr.Op.String(), lvalStr)
+			errorMsg := fmt.Sprintf("yoda condition: %s %s %s should be %s",
 				lvalStr, bexpr.Op.String(), rval.Name,
-				rval.Name, bexpr.Op.String(), lvalStr,
+				newText,
 			)
+			pass.Report(analysis.Diagnostic{
+				Pos:      bexpr.Pos(),
+				End:      bexpr.End(),
+				Category: "noyoda",
+				Message:  errorMsg,
+				SuggestedFixes: []analysis.SuggestedFix{
+					{
+						Message: errorMsg,
+						TextEdits: []analysis.TextEdit{
+							{
+								Pos:     bexpr.Pos(),
+								End:     bexpr.End(),
+								NewText: []byte(newText),
+							},
+						},
+					},
+				},
+			})
 		}
 	})
 
