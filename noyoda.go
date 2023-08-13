@@ -61,7 +61,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 //nolint:nonamedreturns
-func parseBinaryExpressions(n ast.Node) (bexprs []*ast.BinaryExpr) {
+func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
+	var bexprs []*ast.BinaryExpr
 	switch node := n.(type) {
 	case *ast.IfStmt:
 		bexpr, ok := node.Cond.(*ast.BinaryExpr)
@@ -86,5 +87,36 @@ func parseBinaryExpressions(n ast.Node) (bexprs []*ast.BinaryExpr) {
 		panic("should never reach here, node is neither IfStmt nor CaseClause")
 	}
 
-	return bexprs
+	var ret []*ast.BinaryExpr
+
+	for _, expr := range bexprs {
+		exprs := recurseBinaryExpressions(expr)
+		if exprs != nil {
+			ret = append(ret, exprs...)
+		}
+	}
+	return ret
+}
+
+func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
+	xexpr, xok := expr.X.(*ast.BinaryExpr)
+	yexpr, yok := expr.Y.(*ast.BinaryExpr)
+
+	switch {
+	case !xok && !yok: // expr does not contain another binary expression
+		return []*ast.BinaryExpr{expr}
+	case xok && yok: // both have binary expression
+		xs := recurseBinaryExpressions(xexpr)
+		ys := recurseBinaryExpressions(yexpr)
+
+		return append(xs, ys...)
+
+	case xok: // only x have binary expression
+		return recurseBinaryExpressions(xexpr)
+	case yok: // only y have binary expression
+		return recurseBinaryExpressions(yexpr)
+
+	default:
+		panic("Unkown state")
+	}
 }

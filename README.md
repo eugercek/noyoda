@@ -22,7 +22,6 @@ noyoda ./...
 
 # Roadmap
 
-- [ ] Recursive checker (`if a == b && 10 == n`)
 - [ ] `const` check
 - [ ] flag for `const` check
 - [ ] Auto fix
