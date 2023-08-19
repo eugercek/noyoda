@@ -15,7 +15,6 @@ const doc = `remove yoda conditions
 Yoda condition is a expression/statement style to prevent accidental assignments like if x = 3 instead if x == 3.
 Go does not needs this check.`
 
-//nolint:gochecknoglobals
 var (
 	includeConst bool
 	skipRange    bool
@@ -29,7 +28,6 @@ func init() {
 }
 
 func NewAnalyzer() *analysis.Analyzer {
-	//nolint:exhaustruct,exhaustivestruct
 	return &analysis.Analyzer{
 		Name:     "noyoda",
 		Doc:      doc,
@@ -64,7 +62,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				newText,
 			)
 
-			//nolint:exhaustruct,exhaustivestruct
 			pass.Report(analysis.Diagnostic{
 				Pos:      bexpr.Pos(),
 				End:      bexpr.End(),
@@ -90,6 +87,14 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
+// isYodaCondition checks if an expression written in yoda condition style
+// many expression may seem like "yoda condition" style for example: (2 * time.Minute)
+// which is very natural form of saying "2 minutes", since it's not in an if or switch-case
+// "statement" this is not yoda condition.
+//
+// # Usage of isYodaCondition should be on ast.IfStmt.Cond and ast.CaseClause
+//
+// This function would be very good use case of naked return :(.
 func isYodaCondition(expr *ast.BinaryExpr) (lval, rval string, ok bool) {
 	lval, ok = parseYodaConstant(expr.X)
 
@@ -108,6 +113,11 @@ func isYodaCondition(expr *ast.BinaryExpr) (lval, rval string, ok bool) {
 	return lval, rval, true
 }
 
+// parseBinaryExpressions extracts binary expressions from a node.
+// Recursively looks for all binary expressions.
+//
+// For functionality of this package, only ast.IfStmt and ast.caseClause is enough
+// Any other node as argument will panic.
 func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
 	var bexprs []*ast.BinaryExpr
 
@@ -116,7 +126,7 @@ func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
 		bexpr, ok := node.Cond.(*ast.BinaryExpr)
 
 		if !ok {
-			return bexprs
+			return nil
 		}
 
 		bexprs = append(bexprs, bexpr)
@@ -147,6 +157,7 @@ func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
 	return ret
 }
 
+// recurseBinaryExpressions traverses and accumulates all binary expressions under given expr argument.
 func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 	xexpr, xok := expr.X.(*ast.BinaryExpr)
 	yexpr, yok := expr.Y.(*ast.BinaryExpr)
@@ -155,7 +166,10 @@ func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 	case !xok && !yok: // expr does not contain another binary expression
 		return []*ast.BinaryExpr{expr}
 	case xok && yok: // both have binary expression
-		if skipRange && isRangeCondition(expr) {
+		// Check 10 > a && a > 5 like conditions
+		// This must be above from recursion because we need a root bexpr
+		// and look at its children (if any)
+		if skipRange && isNumberRangExpression(expr) {
 			return []*ast.BinaryExpr{}
 		}
 
@@ -195,7 +209,13 @@ func parseYodaConstant(e ast.Expr) (val string, ok bool) {
 	}
 }
 
-func isRangeCondition(top *ast.BinaryExpr) bool {
+// isNumberRangExpression checks if a binary expression is a "number range expression"
+// a number range expression is something like: 10 > a && a > 5 or 1 < a && a < 20
+// since this is very natural way of saying: 10 > a > 5 and 1 < a 20, noyoda
+// ignores this type of yoda condition (10 > a)
+//
+// This function is limit on the cyclomatic complexity, carefully edit.
+func isNumberRangExpression(top *ast.BinaryExpr) bool {
 	left, ok := top.X.(*ast.BinaryExpr)
 
 	if !ok {
@@ -212,7 +232,7 @@ func isRangeCondition(top *ast.BinaryExpr) bool {
 		return false
 	}
 
-	ok = rangeOperatorMatch(left.Op.String(), right.Op.String())
+	ok = numberRangeOperatorMatch(left.Op.String(), right.Op.String())
 
 	if !ok {
 		return false
@@ -239,7 +259,9 @@ func isRangeCondition(top *ast.BinaryExpr) bool {
 	return true
 }
 
-func rangeOperatorMatch(l, r string) bool {
+// numberRangeOperatorMatch checks can l and r operators can be part of
+// "number range expression". look at isNumberRangExpression's docstring for explanation.
+func numberRangeOperatorMatch(l, r string) bool {
 	switch l {
 	case ">", ">=":
 		return r == ">" || r == ">="

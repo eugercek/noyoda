@@ -77,7 +77,7 @@ func Test_rangeOperatorMatch(t *testing.T) {
 		t.Run(fmt.Sprintf("%s and %s", ts.l, ts.r), func(t *testing.T) {
 			t.Parallel()
 
-			ok := rangeOperatorMatch(ts.l, ts.r)
+			ok := numberRangeOperatorMatch(ts.l, ts.r)
 
 			if ok != ts.ok {
 				t.Errorf("want %t got %t", ts.ok, ok)

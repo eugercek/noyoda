@@ -5,3 +5,6 @@ linters:
     - gochecknoinits
     - varnamelen
     - nonamedreturns
+    - exhaustruct
+    - exhaustivestruct
+    - gochecknoglobals
