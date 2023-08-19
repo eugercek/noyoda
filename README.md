@@ -1,11 +1,12 @@
-`noyoda` is a Go linter, which reports Yoda Conditions.
+`noyoda` is a Go linter, which reports yoda style conditionals.
 
-Yoda Condition style involves writing conditions expression/statements in a way that resembles the Yoda from Star Wars.
-Instead of writing `if x == 10`, a Yoda Condition would be `if 10 == x`.
-This approach aims to prevent unintended assignment by breaking the program at compile time.
-For instance, it would prevent code like `if 10 = x`, which is invalid and would not compile.
+# Flags
 
-Because `if x = 10 { ... } ` is invalid syntax in Go, there's no need for yoda conditions.
+| Flag             | Description                                        | Default |
+|------------------|----------------------------------------------------|---------|
+| `-fix`           | Auto fix yoda conditions                           | no      |
+| `-include-const` | Treat const as literal (`const x = 10; if x == a`) | no      |
+| `-skip-range`    | Skip number range checks `(10 > a && a > 5)`       | yes     |
 
 # Installation and Usage
 
@@ -23,4 +24,15 @@ noyoda ./...
 - [x] Flag for `const`
 - [x] Recursive check
 - [x] Auto fix
+- [x] Skip number range checks  (`10 > a  && a > 10`...)
 - [ ] Run tests for comprehensive set of popular go codebases, if there are many maybe Open a PR to golangci-lint
+
+# Useful Resources
+
+- https://arslan.io/2017/09/14/the-ultimate-guide-to-writing-a-go-tool
+- https://arslan.io/2019/06/13/using-go-analysis-to-write-a-custom-linter
+- https://arslan.io/2020/07/07/using-go-analysis-to-fix-your-source-code/
+- https://disaev.me/p/writing-useful-go-analysis-linter
+- https://www.youtube.com/watch?v=k23xhJoTbI4
+- https://www.youtube.com/watch?v=YRWCa84pykM
+

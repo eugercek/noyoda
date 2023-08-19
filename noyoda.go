@@ -18,11 +18,14 @@ Go does not needs this check.`
 //nolint:gochecknoglobals
 var (
 	includeConst bool
+	skipRange    bool
 	flagset      flag.FlagSet
 )
 
 func init() {
 	flagset.BoolVar(&includeConst, "include-const", false, "should include const (default is false)")
+	flagset.BoolVar(&skipRange, "skip-range", true,
+		"should skip (10 < a && a < 20) like range conditions from yoda conditions (default is false)")
 }
 
 func NewAnalyzer() *analysis.Analyzer {
@@ -49,23 +52,18 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		bexprs := parseBinaryExpressions(node)
 
 		for _, bexpr := range bexprs {
-			lval, ok := parseLeft(bexpr.X)
+			lval, rval, ok := isYodaCondition(bexpr)
 
 			if !ok {
 				continue
 			}
 
-			rval, ok := bexpr.Y.(*ast.Ident)
-
-			if !ok {
-				continue
-			}
-
-			newText := fmt.Sprintf("%s %s %s", rval.Name, bexpr.Op.String(), lval)
+			newText := fmt.Sprintf("%s %s %s", rval, bexpr.Op.String(), lval)
 			errorMsg := fmt.Sprintf("yoda condition: %s %s %s should be %s",
-				lval, bexpr.Op.String(), rval.Name,
+				lval, bexpr.Op.String(), rval,
 				newText,
 			)
+
 			//nolint:exhaustruct,exhaustivestruct
 			pass.Report(analysis.Diagnostic{
 				Pos:      bexpr.Pos(),
@@ -90,6 +88,24 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	//nolint:nilnil
 	return nil, nil
+}
+
+func isYodaCondition(expr *ast.BinaryExpr) (lval, rval string, ok bool) {
+	lval, ok = parseYodaConstant(expr.X)
+
+	if !ok {
+		return "", "", false
+	}
+
+	r, ok := expr.Y.(*ast.Ident)
+
+	if !ok {
+		return "", "", false
+	}
+
+	rval = r.Name
+
+	return lval, rval, true
 }
 
 func parseBinaryExpressions(n ast.Node) []*ast.BinaryExpr {
@@ -139,6 +155,10 @@ func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 	case !xok && !yok: // expr does not contain another binary expression
 		return []*ast.BinaryExpr{expr}
 	case xok && yok: // both have binary expression
+		if skipRange && isRangeCondition(expr) {
+			return []*ast.BinaryExpr{}
+		}
+
 		xs := recurseBinaryExpressions(xexpr)
 		ys := recurseBinaryExpressions(yexpr)
 
@@ -154,7 +174,9 @@ func recurseBinaryExpressions(expr *ast.BinaryExpr) []*ast.BinaryExpr {
 	}
 }
 
-func parseLeft(e ast.Expr) (val string, ok bool) {
+// parseYodaConstant checks if the expression is valid yoda expression's left hand
+// Which is only valid when left is basic literal or `includeConst` enabled and left is constant.
+func parseYodaConstant(e ast.Expr) (val string, ok bool) {
 	switch expr := e.(type) {
 	case *ast.BasicLit:
 		return expr.Value, true
@@ -171,4 +193,59 @@ func parseLeft(e ast.Expr) (val string, ok bool) {
 	default:
 		return "", false
 	}
+}
+
+func isRangeCondition(top *ast.BinaryExpr) bool {
+	left, ok := top.X.(*ast.BinaryExpr)
+
+	if !ok {
+		return false
+	}
+
+	right, ok := top.Y.(*ast.BinaryExpr)
+
+	if !ok {
+		return false
+	}
+
+	if top.Op.String() != "&&" {
+		return false
+	}
+
+	ok = rangeOperatorMatch(left.Op.String(), right.Op.String())
+
+	if !ok {
+		return false
+	}
+
+	// Here we know that expression is like a < b  && c < d
+	// Now we need to check if `a` and `d `are yoda constant
+	// And b and c are same variable
+
+	_, llok := parseYodaConstant(left.X)
+	lr, lrok := left.Y.(*ast.Ident)
+
+	rl, rlok := right.X.(*ast.Ident)
+	_, rrok := parseYodaConstant(right.Y)
+
+	if !(llok && lrok && rlok && rrok) {
+		return false
+	}
+
+	if lr.Name != rl.Name {
+		return false
+	}
+
+	return true
+}
+
+func rangeOperatorMatch(l, r string) bool {
+	switch l {
+	case ">", ">=":
+		return r == ">" || r == ">="
+	case "<", "<=":
+		return r == "<" || r == "<="
+	}
+
+	return false
 }
